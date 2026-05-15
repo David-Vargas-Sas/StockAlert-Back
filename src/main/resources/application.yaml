@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: stockalert-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/stockalert}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:Tecs2026*}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+stockalert:
+  security:
+    jwt-secret: ${JWT_SECRET:stockalert-development-secret-key-change-me}
+    jwt-expiration-minutes: ${JWT_EXPIRATION_MINUTES:480}
+    refresh-token-expiration-days: ${REFRESH_TOKEN_EXPIRATION_DAYS:7}
+  bootstrap:
+    company-name: ${BOOTSTRAP_COMPANY_NAME:StockAlert}
+    super-admin-username: ${SUPER_ADMIN_USERNAME:superadmin}
+    super-admin-email: ${SUPER_ADMIN_EMAIL:superadmin@stockalert.local}
+    super-admin-password: ${SUPER_ADMIN_PASSWORD:Admin123*}
