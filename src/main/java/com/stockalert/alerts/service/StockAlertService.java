@@ -49,7 +49,7 @@ public class StockAlertService {
     @Transactional
     public StockAlertResponseDto resolve(Long id) {
         StockAlert alert = stockAlertRepository.findByIdAndCompanyId(id, currentUserService.getCompanyId())
-                .orElseThrow(() -> new NotFoundException("Stock alert not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException("Alerta de stock no encontrada con id: " + id));
         alert.setStatus(AlertStatus.RESOLVED);
         alert.setUpdatedBy(auditService.getCurrentUsername());
         return toResponse(alert);
@@ -73,7 +73,7 @@ public class StockAlertService {
                 .company(product.getCompany())
                 .status(AlertStatus.ACTIVE)
                 .createdBy(auditService.getCurrentUsername())
-                .message("Product " + product.getName() + " needs replenishment. Current stock: " + product.getStock())
+                .message("El producto " + product.getName() + " necesita reposicion. Stock actual: " + product.getStock())
                 .build();
         stockAlertRepository.save(alert);
     }

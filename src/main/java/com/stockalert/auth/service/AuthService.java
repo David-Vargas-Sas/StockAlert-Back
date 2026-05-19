@@ -14,11 +14,13 @@ import com.stockalert.security.TokenService;
 import com.stockalert.security.UserPrincipal;
 import com.stockalert.shared.exception.BusinessException;
 import com.stockalert.users.model.User;
+import com.stockalert.users.repository.UserRepository;
 import com.stockalert.users.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,20 +38,36 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;
     private final UserService userService;
+    private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final SessionLogRepository sessionLogRepository;
 
     @Value("${stockalert.security.refresh-token-expiration-days}")
     private Long refreshTokenExpirationDays;
 
-    @Transactional
+    private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
+    private static final int LOCK_MINUTES = 15;
+
+    @Transactional(noRollbackFor = BadCredentialsException.class)
     public AuthResponseDto login(LoginRequestDto request, HttpServletRequest httpRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+        User userForLockValidation = userRepository.findByUsername(request.getUsername()).orElse(null);
+        if (userForLockValidation != null) {
+            validateUserCanStartSession(userForLockValidation);
+        }
+
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+            );
+        } catch (BadCredentialsException exception) {
+            registerFailedLogin(request.getUsername(), getClientIp(httpRequest));
+            throw exception;
+        }
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = userService.findEntityByUsername(principal.getUsername());
         validateUserCanStartSession(user);
+        resetFailedLogin(user);
         closeActiveSessions(user, getClientIp(httpRequest), "Sesion cerrada por nuevo inicio de sesion");
         RefreshToken refreshToken = createRefreshToken(user);
         logSession(user, SessionEventType.LOGIN, getClientIp(httpRequest), "Login exitoso");
@@ -140,6 +158,26 @@ public class AuthService {
         if (!Boolean.TRUE.equals(user.getActive())) {
             throw new BusinessException("Usuario inactivo");
         }
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+            throw new BusinessException("Usuario bloqueado temporalmente hasta: " + user.getLockedUntil());
+        }
+    }
+
+    private void registerFailedLogin(String username, String ipAddress) {
+        userRepository.findByUsername(username).ifPresent(user -> {
+            int attempts = user.getFailedLoginAttempts() == null ? 1 : user.getFailedLoginAttempts() + 1;
+            user.setFailedLoginAttempts(attempts);
+            if (attempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+                user.setLockedUntil(LocalDateTime.now().plusMinutes(LOCK_MINUTES));
+                user.setFailedLoginAttempts(0);
+                logSession(user, SessionEventType.LOGIN, ipAddress, "Usuario bloqueado por intentos fallidos");
+            }
+        });
+    }
+
+    private void resetFailedLogin(User user) {
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
     }
 
     private String generateSecureToken() {

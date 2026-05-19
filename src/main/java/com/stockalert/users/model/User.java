@@ -55,6 +55,12 @@ public class User {
     @Column(nullable = false)
     private Boolean active;
 
+    @Column(name = "failed_login_attempts", nullable = false, columnDefinition = "integer default 0")
+    private Integer failedLoginAttempts;
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -83,6 +89,9 @@ public class User {
     void prePersist() {
         if (active == null) {
             active = true;
+        }
+        if (failedLoginAttempts == null) {
+            failedLoginAttempts = 0;
         }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();

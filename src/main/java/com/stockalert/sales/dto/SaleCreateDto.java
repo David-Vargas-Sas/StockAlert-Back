@@ -15,6 +15,8 @@ import java.util.List;
 @AllArgsConstructor
 public class SaleCreateDto {
 
+    private Long customerId;
+
     @Valid
     @NotEmpty(message = "La venta debe tener al menos un producto")
     private List<SaleItemCreateDto> items;

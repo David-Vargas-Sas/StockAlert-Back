@@ -10,6 +10,8 @@ import com.stockalert.products.repository.ProductRepository;
 import com.stockalert.security.CurrentUserService;
 import com.stockalert.shared.exception.NotFoundException;
 import com.stockalert.shared.service.AuditService;
+import com.stockalert.suppliers.model.Supplier;
+import com.stockalert.suppliers.service.SupplierService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +29,7 @@ public class ProductService {
     private final CompanyService companyService;
     private final CurrentUserService currentUserService;
     private final AuditService auditService;
+    private final SupplierService supplierService;
 
     @Transactional(readOnly = true)
     public List<ProductResponseDto> findAll() {
@@ -36,10 +39,25 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ProductResponseDto> findAllPaginated(int page, int size, String sortBy, String sortDirection) {
+    public Page<ProductResponseDto> findAllPaginated(int page, int size, String sortBy, String sortDirection, String search, Boolean active) {
         Sort sort = buildSort(sortBy, sortDirection);
-        return productRepository.findByCompanyId(currentUserService.getCompanyId(), PageRequest.of(page, size, sort))
-                .map(this::toResponse);
+        PageRequest pageable = PageRequest.of(page, size, sort);
+        Long companyId = currentUserService.getCompanyId();
+        String normalizedSearch = search == null || search.isBlank() ? null : search.trim();
+
+        if (normalizedSearch != null && active != null) {
+            return productRepository.findByCompanyIdAndNameContainingIgnoreCaseAndActive(companyId, normalizedSearch, active, pageable)
+                    .map(this::toResponse);
+        }
+        if (normalizedSearch != null) {
+            return productRepository.findByCompanyIdAndNameContainingIgnoreCase(companyId, normalizedSearch, pageable)
+                    .map(this::toResponse);
+        }
+        if (active != null) {
+            return productRepository.findByCompanyIdAndActive(companyId, active, pageable)
+                    .map(this::toResponse);
+        }
+        return productRepository.findByCompanyId(companyId, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -50,8 +68,10 @@ public class ProductService {
     @Transactional
     public ProductResponseDto create(ProductCreateDto request) {
         Company company = companyService.findEntityById(currentUserService.getCompanyId());
+        Supplier supplier = request.getSupplierId() != null ? supplierService.findEntityByIdForCurrentCompany(request.getSupplierId()) : null;
         Product product = Product.builder()
                 .company(company)
+                .supplier(supplier)
                 .name(request.getName())
                 .description(request.getDescription())
                 .price(request.getPrice())
@@ -67,6 +87,8 @@ public class ProductService {
     @Transactional
     public ProductResponseDto update(Long id, ProductUpdateDto request) {
         Product product = findEntityByIdForCurrentCompany(id);
+        Supplier supplier = request.getSupplierId() != null ? supplierService.findEntityByIdForCurrentCompany(request.getSupplierId()) : null;
+        product.setSupplier(supplier);
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
@@ -83,6 +105,22 @@ public class ProductService {
     public void deactivate(Long id) {
         Product product = findEntityByIdForCurrentCompany(id);
         product.setActive(false);
+        product.setUpdatedBy(auditService.getCurrentUsername());
+    }
+
+    @Transactional
+    public ProductResponseDto activate(Long id) {
+        Product product = findEntityByIdForCurrentCompany(id);
+        product.setActive(true);
+        product.setDeletedAt(null);
+        product.setUpdatedBy(auditService.getCurrentUsername());
+        return toResponse(product);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Product product = findEntityByIdForCurrentCompany(id);
+        product.setActive(false);
         product.setDeletedAt(java.time.LocalDateTime.now());
         product.setUpdatedBy(auditService.getCurrentUsername());
     }
@@ -97,19 +135,21 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Product findEntityById(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Product not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException("Producto no encontrado con id: " + id));
     }
 
     @Transactional(readOnly = true)
     public Product findEntityByIdForCurrentCompany(Long id) {
         return productRepository.findByIdAndCompanyId(id, currentUserService.getCompanyId())
-                .orElseThrow(() -> new NotFoundException("Product not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException("Producto no encontrado con id: " + id));
     }
 
     private ProductResponseDto toResponse(Product product) {
         return ProductResponseDto.builder()
                 .id(product.getId())
                 .companyId(product.getCompany().getId())
+                .supplierId(product.getSupplier() != null ? product.getSupplier().getId() : null)
+                .supplierName(product.getSupplier() != null ? product.getSupplier().getName() : null)
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())

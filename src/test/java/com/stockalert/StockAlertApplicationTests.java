@@ -6,6 +6,7 @@ import com.stockalert.auth.dto.RefreshTokenRequestDto;
 import com.stockalert.auth.repository.RefreshTokenRepository;
 import com.stockalert.auth.service.AuthService;
 import com.stockalert.companies.model.Company;
+import com.stockalert.companies.model.CompanyStatus;
 import com.stockalert.companies.repository.CompanyRepository;
 import com.stockalert.products.controller.ProductController;
 import com.stockalert.products.model.Product;
@@ -165,7 +166,7 @@ class StockAlertApplicationTests {
                 .orElseGet(() -> companyRepository.save(Company.builder()
                         .name(name)
                         .taxId(name.replace(" ", "-").toUpperCase())
-                        .active(true)
+                        .status(CompanyStatus.ACTIVE)
                         .createdBy("test")
                         .build()));
     }

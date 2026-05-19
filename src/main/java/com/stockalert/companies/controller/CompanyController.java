@@ -1,11 +1,13 @@
 package com.stockalert.companies.controller;
 
+import com.stockalert.companies.dto.CompanyAdminCreateDto;
 import com.stockalert.companies.dto.CompanyCreateDto;
 import com.stockalert.companies.dto.CompanyResponseDto;
 import com.stockalert.companies.dto.CompanyUpdateDto;
 import com.stockalert.companies.service.CompanyService;
 import com.stockalert.shared.response.ApiResponseDto;
 import com.stockalert.shared.response.PageResponseDto;
+import com.stockalert.users.dto.UserResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -18,7 +20,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -86,6 +90,50 @@ public class CompanyController {
         CompanyResponseDto created = companyService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponseDto.success("Empresa creada correctamente", created));
+    }
+
+    @PostMapping("/{companyId}/admin")
+    @PreAuthorize("hasAuthority('COMPANY_CREATE') and hasAuthority('USER_CREATE')")
+    @Operation(summary = "Crear administrador inicial de empresa")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Administrador creado correctamente"),
+            @ApiResponse(responseCode = "400", description = "Datos invalidos")
+    })
+    public ResponseEntity<ApiResponseDto<UserResponseDto>> createCompanyAdmin(
+            @PathVariable @Parameter(description = "ID de la empresa") Long companyId,
+            @Valid @RequestBody @Parameter(description = "Datos del administrador") CompanyAdminCreateDto request) {
+        logger.info("Solicitud para crear administrador de empresa id={}", companyId);
+        UserResponseDto created = companyService.createCompanyAdmin(companyId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponseDto.success("Administrador de empresa creado correctamente", created));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('COMPANY_DELETE')")
+    @Operation(summary = "Eliminar empresa")
+    public ResponseEntity<ApiResponseDto<Void>> delete(
+            @PathVariable @Parameter(description = "ID de la empresa") Long id) {
+        logger.info("Solicitud para eliminar empresa id={}", id);
+        companyService.delete(id);
+        return ResponseEntity.ok(ApiResponseDto.success("Empresa eliminada correctamente", null));
+    }
+
+    @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasAuthority('COMPANY_UPDATE')")
+    @Operation(summary = "Activar empresa")
+    public ResponseEntity<ApiResponseDto<CompanyResponseDto>> activate(
+            @PathVariable @Parameter(description = "ID de la empresa") Long id) {
+        logger.info("Solicitud para activar empresa id={}", id);
+        return ResponseEntity.ok(ApiResponseDto.success("Empresa activada correctamente", companyService.activate(id)));
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasAuthority('COMPANY_UPDATE')")
+    @Operation(summary = "Desactivar empresa")
+    public ResponseEntity<ApiResponseDto<CompanyResponseDto>> deactivate(
+            @PathVariable @Parameter(description = "ID de la empresa") Long id) {
+        logger.info("Solicitud para desactivar empresa id={}", id);
+        return ResponseEntity.ok(ApiResponseDto.success("Empresa desactivada correctamente", companyService.deactivate(id)));
     }
 
     @PutMapping("/{id}")

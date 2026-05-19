@@ -2,6 +2,8 @@ package com.stockalert.companies.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,11 +33,48 @@ public class Company {
     @Column(nullable = false, length = 150)
     private String name;
 
+    @Column(name = "trade_name", length = 150)
+    private String tradeName;
+
     @Column(name = "tax_id", length = 30)
     private String taxId;
 
-    @Column(nullable = false)
-    private Boolean active;
+    @Column(name = "verification_digit", length = 5)
+    private String verificationDigit;
+
+    @Column(length = 150)
+    private String email;
+
+    @Column(length = 30)
+    private String phone;
+
+    @Column(length = 255)
+    private String address;
+
+    @Column(length = 100)
+    private String city;
+
+    @Column(length = 100)
+    private String department;
+
+    @Column(length = 100)
+    private String country;
+
+    @Column(name = "legal_representative", length = 150)
+    private String legalRepresentative;
+
+    @Column(name = "legal_representative_document", length = 30)
+    private String legalRepresentativeDocument;
+
+    @Column(length = 255)
+    private String website;
+
+    @Column(name = "logo_path", length = 255)
+    private String logoPath;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'ACTIVE'")
+    private CompanyStatus status;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -54,8 +93,8 @@ public class Company {
 
     @PrePersist
     void prePersist() {
-        if (active == null) {
-            active = true;
+        if (status == null) {
+            status = CompanyStatus.ACTIVE;
         }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();

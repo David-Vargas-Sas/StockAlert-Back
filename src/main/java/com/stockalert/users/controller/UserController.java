@@ -3,6 +3,8 @@ package com.stockalert.users.controller;
 import com.stockalert.users.dto.UserCreateDto;
 import com.stockalert.users.dto.UserResponseDto;
 import com.stockalert.users.dto.UserUpdateDto;
+import com.stockalert.users.dto.ChangePasswordDto;
+import com.stockalert.users.dto.ResetPasswordDto;
 import com.stockalert.users.service.UserService;
 import com.stockalert.shared.response.ApiResponseDto;
 import com.stockalert.shared.response.PageResponseDto;
@@ -16,7 +18,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -81,5 +85,52 @@ public class UserController {
             @Valid @RequestBody UserUpdateDto request) {
         logger.info("Solicitud para actualizar usuario id={}", id);
         return ResponseEntity.ok(ApiResponseDto.success("Usuario actualizado correctamente", userService.update(id, request)));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('USER_DELETE')")
+    @Operation(summary = "Eliminar usuario")
+    public ResponseEntity<ApiResponseDto<Void>> delete(
+            @PathVariable @Parameter(description = "ID del usuario") Long id) {
+        logger.info("Solicitud para eliminar usuario id={}", id);
+        userService.delete(id);
+        return ResponseEntity.ok(ApiResponseDto.success("Usuario eliminado correctamente", null));
+    }
+
+    @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @Operation(summary = "Activar usuario")
+    public ResponseEntity<ApiResponseDto<UserResponseDto>> activate(
+            @PathVariable @Parameter(description = "ID del usuario") Long id) {
+        logger.info("Solicitud para activar usuario id={}", id);
+        return ResponseEntity.ok(ApiResponseDto.success("Usuario activado correctamente", userService.activate(id)));
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @Operation(summary = "Desactivar usuario")
+    public ResponseEntity<ApiResponseDto<UserResponseDto>> deactivate(
+            @PathVariable @Parameter(description = "ID del usuario") Long id) {
+        logger.info("Solicitud para desactivar usuario id={}", id);
+        return ResponseEntity.ok(ApiResponseDto.success("Usuario desactivado correctamente", userService.deactivate(id)));
+    }
+
+    @PatchMapping("/me/password")
+    @Operation(summary = "Cambiar mi contrasena")
+    public ResponseEntity<ApiResponseDto<Void>> changeOwnPassword(@Valid @RequestBody ChangePasswordDto request) {
+        logger.info("Solicitud para cambiar contrasena propia");
+        userService.changeOwnPassword(request);
+        return ResponseEntity.ok(ApiResponseDto.success("Contrasena actualizada correctamente", null));
+    }
+
+    @PatchMapping("/{id}/password")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @Operation(summary = "Restablecer contrasena de usuario")
+    public ResponseEntity<ApiResponseDto<Void>> resetPassword(
+            @PathVariable @Parameter(description = "ID del usuario") Long id,
+            @Valid @RequestBody ResetPasswordDto request) {
+        logger.info("Solicitud para restablecer contrasena de usuario id={}", id);
+        userService.resetPassword(id, request);
+        return ResponseEntity.ok(ApiResponseDto.success("Contrasena restablecida correctamente", null));
     }
 }

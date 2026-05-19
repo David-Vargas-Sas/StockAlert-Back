@@ -20,4 +20,6 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
     Optional<Role> findByNameAndCompanyId(String name, Long companyId);
 
     Set<Role> findByIdInAndCompanyId(Set<Long> ids, Long companyId);
+
+    boolean existsByPermissions_Id(Long permissionId);
 }

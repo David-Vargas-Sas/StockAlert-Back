@@ -17,5 +17,6 @@ public class RoleResponseDto {
     private Long companyId;
     private String name;
     private String description;
+    private Boolean active;
     private Set<PermissionResponseDto> permissions;
 }

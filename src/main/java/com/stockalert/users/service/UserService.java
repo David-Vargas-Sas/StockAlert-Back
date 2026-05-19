@@ -9,6 +9,8 @@ import com.stockalert.shared.service.AuditService;
 import com.stockalert.users.dto.UserCreateDto;
 import com.stockalert.users.dto.UserResponseDto;
 import com.stockalert.users.dto.UserUpdateDto;
+import com.stockalert.users.dto.ChangePasswordDto;
+import com.stockalert.users.dto.ResetPasswordDto;
 import com.stockalert.users.model.User;
 import com.stockalert.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -92,6 +94,60 @@ public class UserService {
         user.setUpdatedBy(auditService.getCurrentUsername());
         user.setRoles(roleService.findEntitiesByIdsAndCompanyId(request.getRoleIds(), user.getCompany().getId()));
         return toResponse(user);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        User user = currentUserService.hasRole("SUPER_ADMIN")
+                ? userRepository.findById(id).orElseThrow(() -> new NotFoundException("Usuario no encontrado con id: " + id))
+                : findEntityByIdForCurrentCompany(id);
+        user.setActive(false);
+        user.setDeletedAt(java.time.LocalDateTime.now());
+        user.setUpdatedBy(auditService.getCurrentUsername());
+    }
+
+    @Transactional
+    public UserResponseDto activate(Long id) {
+        User user = currentUserService.hasRole("SUPER_ADMIN")
+                ? userRepository.findById(id).orElseThrow(() -> new NotFoundException("Usuario no encontrado con id: " + id))
+                : findEntityByIdForCurrentCompany(id);
+        user.setActive(true);
+        user.setDeletedAt(null);
+        user.setUpdatedBy(auditService.getCurrentUsername());
+        return toResponse(user);
+    }
+
+    @Transactional
+    public UserResponseDto deactivate(Long id) {
+        User user = currentUserService.hasRole("SUPER_ADMIN")
+                ? userRepository.findById(id).orElseThrow(() -> new NotFoundException("Usuario no encontrado con id: " + id))
+                : findEntityByIdForCurrentCompany(id);
+        if (user.getId().equals(currentUserService.getUserId())) {
+            throw new BusinessException("No puedes desactivar tu propio usuario");
+        }
+        user.setActive(false);
+        user.setUpdatedBy(auditService.getCurrentUsername());
+        return toResponse(user);
+    }
+
+    @Transactional
+    public void changeOwnPassword(ChangePasswordDto request) {
+        User user = userRepository.findById(currentUserService.getUserId())
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BusinessException("La contrasena actual no es correcta");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedBy(auditService.getCurrentUsername());
+    }
+
+    @Transactional
+    public void resetPassword(Long id, ResetPasswordDto request) {
+        User user = currentUserService.hasRole("SUPER_ADMIN")
+                ? userRepository.findById(id).orElseThrow(() -> new NotFoundException("Usuario no encontrado con id: " + id))
+                : findEntityByIdForCurrentCompany(id);
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedBy(auditService.getCurrentUsername());
     }
 
     @Transactional(readOnly = true)

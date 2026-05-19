@@ -22,5 +22,7 @@ public class RoleUpdateDto {
     @Size(max = 255, message = "La descripcion del rol no puede superar 255 caracteres")
     private String description;
 
+    private Boolean active;
+
     private Set<Long> permissionIds;
 }

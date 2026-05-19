@@ -3,6 +3,7 @@ package com.stockalert.users.service;
 import com.stockalert.companies.model.Company;
 import com.stockalert.companies.service.CompanyService;
 import com.stockalert.security.CurrentUserService;
+import com.stockalert.shared.exception.BusinessException;
 import com.stockalert.shared.exception.NotFoundException;
 import com.stockalert.shared.service.AuditService;
 import com.stockalert.users.dto.RoleCreateDto;
@@ -30,6 +31,7 @@ public class RoleService {
     private final PermissionService permissionService;
     private final CurrentUserService currentUserService;
     private final AuditService auditService;
+    private final com.stockalert.users.repository.UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public Page<RoleResponseDto> findAllPaginated(int page, int size, String sortBy, String sortDirection) {
@@ -58,6 +60,7 @@ public class RoleService {
                 .company(company)
                 .name(request.getName())
                 .description(request.getDescription())
+                .active(true)
                 .createdBy(auditService.getCurrentUsername())
                 .permissions(permissionService.findEntitiesByIds(request.getPermissionIds()))
                 .build();
@@ -71,9 +74,50 @@ public class RoleService {
                 : findEntityByIdForCurrentCompany(id);
         role.setName(request.getName());
         role.setDescription(request.getDescription());
+        if (request.getActive() != null) {
+            role.setActive(request.getActive());
+        }
         role.setUpdatedBy(auditService.getCurrentUsername());
         role.setPermissions(permissionService.findEntitiesByIds(request.getPermissionIds()));
         return toResponse(role);
+    }
+
+    @Transactional
+    public RoleResponseDto activate(Long id) {
+        Role role = currentUserService.hasRole("SUPER_ADMIN")
+                ? roleRepository.findById(id).orElseThrow(() -> new NotFoundException("Rol no encontrado con id: " + id))
+                : findEntityByIdForCurrentCompany(id);
+        role.setActive(true);
+        role.setDeletedAt(null);
+        role.setUpdatedBy(auditService.getCurrentUsername());
+        return toResponse(role);
+    }
+
+    @Transactional
+    public RoleResponseDto deactivate(Long id) {
+        Role role = currentUserService.hasRole("SUPER_ADMIN")
+                ? roleRepository.findById(id).orElseThrow(() -> new NotFoundException("Rol no encontrado con id: " + id))
+                : findEntityByIdForCurrentCompany(id);
+        if (isBaseRole(role.getName())) {
+            throw new BusinessException("No se pueden desactivar roles base del sistema");
+        }
+        role.setActive(false);
+        role.setUpdatedBy(auditService.getCurrentUsername());
+        return toResponse(role);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Role role = currentUserService.hasRole("SUPER_ADMIN")
+                ? roleRepository.findById(id).orElseThrow(() -> new NotFoundException("Rol no encontrado con id: " + id))
+                : findEntityByIdForCurrentCompany(id);
+        if (isBaseRole(role.getName())) {
+            throw new BusinessException("No se pueden eliminar roles base del sistema");
+        }
+        if (userRepository.existsByRoles_Id(role.getId())) {
+            throw new BusinessException("No se puede eliminar el rol porque esta asignado a usuarios");
+        }
+        roleRepository.delete(role);
     }
 
     @Transactional(readOnly = true)
@@ -103,6 +147,7 @@ public class RoleService {
                 .companyId(role.getCompany().getId())
                 .name(role.getName())
                 .description(role.getDescription())
+                .active(role.getActive())
                 .permissions(role.getPermissions().stream().map(permissionService::toResponse).collect(Collectors.toSet()))
                 .build();
     }
@@ -120,5 +165,9 @@ public class RoleService {
     private Sort buildSort(String sortBy, String sortDirection) {
         Sort.Direction direction = "desc".equalsIgnoreCase(sortDirection) ? Sort.Direction.DESC : Sort.Direction.ASC;
         return Sort.by(direction, sortBy);
+    }
+
+    private boolean isBaseRole(String roleName) {
+        return Set.of("SUPER_ADMIN", "ADMINISTRADOR", "VENDEDOR", "BODEGUERO", "CONSULTOR").contains(roleName);
     }
 }

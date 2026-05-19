@@ -16,7 +16,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -81,5 +83,33 @@ public class RoleController {
             @Valid @RequestBody RoleUpdateDto request) {
         logger.info("Solicitud para actualizar rol id={}", id);
         return ResponseEntity.ok(ApiResponseDto.success("Rol actualizado correctamente", roleService.update(id, request)));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_DELETE')")
+    @Operation(summary = "Eliminar rol")
+    public ResponseEntity<ApiResponseDto<Void>> delete(
+            @PathVariable @Parameter(description = "ID del rol") Long id) {
+        logger.info("Solicitud para eliminar rol id={}", id);
+        roleService.delete(id);
+        return ResponseEntity.ok(ApiResponseDto.success("Rol eliminado correctamente", null));
+    }
+
+    @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasAuthority('ROLE_UPDATE')")
+    @Operation(summary = "Activar rol")
+    public ResponseEntity<ApiResponseDto<RoleResponseDto>> activate(
+            @PathVariable @Parameter(description = "ID del rol") Long id) {
+        logger.info("Solicitud para activar rol id={}", id);
+        return ResponseEntity.ok(ApiResponseDto.success("Rol activado correctamente", roleService.activate(id)));
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasAuthority('ROLE_UPDATE')")
+    @Operation(summary = "Desactivar rol")
+    public ResponseEntity<ApiResponseDto<RoleResponseDto>> deactivate(
+            @PathVariable @Parameter(description = "ID del rol") Long id) {
+        logger.info("Solicitud para desactivar rol id={}", id);
+        return ResponseEntity.ok(ApiResponseDto.success("Rol desactivado correctamente", roleService.deactivate(id)));
     }
 }

@@ -2,6 +2,7 @@ package com.stockalert.sales.controller;
 
 import com.stockalert.sales.dto.SaleCreateDto;
 import com.stockalert.sales.dto.SaleResponseDto;
+import com.stockalert.sales.model.SaleStatus;
 import com.stockalert.sales.service.SaleService;
 import com.stockalert.shared.response.ApiResponseDto;
 import com.stockalert.shared.response.PageResponseDto;
@@ -15,9 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/sales")
@@ -54,11 +58,14 @@ public class SaleController {
             @RequestParam(defaultValue = "0") @Parameter(description = "Numero de pagina") int page,
             @RequestParam(defaultValue = "10") @Parameter(description = "Tamano de pagina") int size,
             @RequestParam(defaultValue = "id") @Parameter(description = "Campo por el que ordenar") String sortBy,
-            @RequestParam(defaultValue = "asc") @Parameter(description = "Direccion de ordenamiento") String sortDirection) {
+            @RequestParam(defaultValue = "asc") @Parameter(description = "Direccion de ordenamiento") String sortDirection,
+            @RequestParam(required = false) SaleStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
         logger.info("Solicitud paginada ventas - page: {}, size: {}, sortBy: {}, direction: {}", page, size, sortBy, sortDirection);
         return ResponseEntity.ok(ApiResponseDto.success(
                 "Ventas paginadas obtenidas correctamente",
-                PageResponseDto.from(saleService.findAllPaginated(page, size, sortBy, sortDirection))
+                PageResponseDto.from(saleService.findAllPaginated(page, size, sortBy, sortDirection, status, start, end))
         ));
     }
 
@@ -84,5 +91,14 @@ public class SaleController {
         SaleResponseDto created = saleService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponseDto.success("Venta registrada correctamente", created));
+    }
+
+    @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('SALE_CREATE')")
+    @Operation(summary = "Anular venta")
+    public ResponseEntity<ApiResponseDto<SaleResponseDto>> cancel(
+            @PathVariable @Parameter(description = "ID de la venta") Long id) {
+        logger.info("Solicitud para anular venta id={}", id);
+        return ResponseEntity.ok(ApiResponseDto.success("Venta anulada correctamente", saleService.cancel(id)));
     }
 }

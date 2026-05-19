@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -49,6 +50,9 @@ public class Role {
     @Column(length = 255)
     private String description;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private Boolean active;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -73,8 +77,11 @@ public class Role {
     )
     private Set<Permission> permissions = new HashSet<>();
 
-    @jakarta.persistence.PrePersist
+    @PrePersist
     void prePersist() {
+        if (active == null) {
+            active = true;
+        }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }

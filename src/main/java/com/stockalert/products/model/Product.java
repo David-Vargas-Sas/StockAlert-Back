@@ -1,6 +1,7 @@
 package com.stockalert.products.model;
 
 import com.stockalert.companies.model.Company;
+import com.stockalert.suppliers.model.Supplier;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -36,6 +37,10 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
 
     @Column(nullable = false, length = 100)
     private String name;

@@ -1,9 +1,12 @@
 package com.stockalert.sales.model;
 
 import com.stockalert.companies.model.Company;
+import com.stockalert.customers.model.Customer;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -41,11 +44,28 @@ public class Sale {
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
+    @Column(name = "sale_number", length = 30)
+    private String saleNumber;
+
     @Column(name = "sale_date", nullable = false)
     private LocalDateTime saleDate;
 
     @Column(name = "created_by", length = 100)
     private String createdBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'ACTIVE'")
+    private SaleStatus status;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "cancelled_by", length = 100)
+    private String cancelledBy;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal total;
@@ -56,6 +76,9 @@ public class Sale {
 
     @PrePersist
     void prePersist() {
+        if (status == null) {
+            status = SaleStatus.ACTIVE;
+        }
         if (saleDate == null) {
             saleDate = LocalDateTime.now();
         }

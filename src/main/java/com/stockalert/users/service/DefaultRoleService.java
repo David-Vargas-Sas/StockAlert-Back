@@ -26,13 +26,30 @@ public class DefaultRoleService {
                 "USER_READ",
                 "USER_CREATE",
                 "USER_UPDATE",
+                "USER_DELETE",
                 "ROLE_READ",
                 "ROLE_CREATE",
                 "ROLE_UPDATE",
+                "ROLE_DELETE",
                 "PRODUCT_READ",
                 "PRODUCT_CREATE",
                 "PRODUCT_UPDATE",
                 "PRODUCT_DELETE",
+                "SUPPLIER_READ",
+                "SUPPLIER_CREATE",
+                "SUPPLIER_UPDATE",
+                "SUPPLIER_DELETE",
+                "CUSTOMER_READ",
+                "CUSTOMER_CREATE",
+                "CUSTOMER_UPDATE",
+                "CUSTOMER_DELETE",
+                "PURCHASE_READ",
+                "PURCHASE_CREATE",
+                "PURCHASE_CANCEL",
+                "INVENTORY_READ",
+                "INVENTORY_ADJUST",
+                "DASHBOARD_READ",
+                "AUDIT_LOG_READ",
                 "SALE_READ",
                 "SALE_CREATE",
                 "ALERT_READ",
@@ -42,8 +59,11 @@ public class DefaultRoleService {
 
         createRoleIfMissing(company, "VENDEDOR", "Usuario de ventas", createdBy, Set.of(
                 "PRODUCT_READ",
+                "CUSTOMER_READ",
+                "CUSTOMER_CREATE",
                 "SALE_READ",
                 "SALE_CREATE",
+                "DASHBOARD_READ",
                 "ALERT_READ"
         ));
 
@@ -52,12 +72,23 @@ public class DefaultRoleService {
                 "PRODUCT_CREATE",
                 "PRODUCT_UPDATE",
                 "PRODUCT_DELETE",
+                "SUPPLIER_READ",
+                "PURCHASE_READ",
+                "PURCHASE_CREATE",
+                "PURCHASE_CANCEL",
+                "INVENTORY_READ",
+                "INVENTORY_ADJUST",
                 "ALERT_READ",
                 "ALERT_RESOLVE"
         ));
 
         createRoleIfMissing(company, "CONSULTOR", "Usuario de solo consulta", createdBy, Set.of(
                 "PRODUCT_READ",
+                "SUPPLIER_READ",
+                "CUSTOMER_READ",
+                "PURCHASE_READ",
+                "INVENTORY_READ",
+                "DASHBOARD_READ",
                 "SALE_READ",
                 "ALERT_READ"
         ));
@@ -75,6 +106,7 @@ public class DefaultRoleService {
                         .company(company)
                         .name(name)
                         .description(description)
+                        .active(true)
                         .createdBy(createdBy)
                         .build()));
 

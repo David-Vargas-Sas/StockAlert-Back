@@ -1,6 +1,7 @@
 package com.stockalert.shared.config;
 
 import com.stockalert.companies.model.Company;
+import com.stockalert.companies.model.CompanyStatus;
 import com.stockalert.companies.repository.CompanyRepository;
 import com.stockalert.users.model.Permission;
 import com.stockalert.users.model.Role;
@@ -52,7 +53,7 @@ public class BootstrapDataInitializer implements CommandLineRunner {
                 .orElseGet(() -> companyRepository.save(Company.builder()
                         .name(companyName)
                         .taxId("SYSTEM")
-                        .active(true)
+                        .status(CompanyStatus.ACTIVE)
                         .createdBy("SYSTEM")
                         .build()));
 
@@ -107,6 +108,21 @@ public class BootstrapDataInitializer implements CommandLineRunner {
                 "PRODUCT_CREATE",
                 "PRODUCT_UPDATE",
                 "PRODUCT_DELETE",
+                "SUPPLIER_READ",
+                "SUPPLIER_CREATE",
+                "SUPPLIER_UPDATE",
+                "SUPPLIER_DELETE",
+                "CUSTOMER_READ",
+                "CUSTOMER_CREATE",
+                "CUSTOMER_UPDATE",
+                "CUSTOMER_DELETE",
+                "PURCHASE_READ",
+                "PURCHASE_CREATE",
+                "PURCHASE_CANCEL",
+                "INVENTORY_READ",
+                "INVENTORY_ADJUST",
+                "DASHBOARD_READ",
+                "AUDIT_LOG_READ",
                 "SALE_READ",
                 "SALE_CREATE",
                 "ALERT_READ",

@@ -18,6 +18,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ProductCreateDto {
 
+    private Long supplierId;
+
     @NotBlank(message = "El nombre del producto es obligatorio")
     @Size(max = 100, message = "El nombre del producto no puede superar 100 caracteres")
     private String name;

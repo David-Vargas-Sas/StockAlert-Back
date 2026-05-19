@@ -34,6 +34,9 @@ public class UserPrincipal implements UserDetails {
     private Set<GrantedAuthority> buildAuthorities(User user) {
         Set<GrantedAuthority> grantedAuthorities = new HashSet<>();
         for (Role role : user.getRoles()) {
+            if (!Boolean.TRUE.equals(role.getActive())) {
+                continue;
+            }
             grantedAuthorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
             for (Permission permission : role.getPermissions()) {
                 grantedAuthorities.add(new SimpleGrantedAuthority(permission.getName()));

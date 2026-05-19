@@ -20,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -61,11 +62,13 @@ public class ProductController {
             @RequestParam(defaultValue = "0") @Parameter(description = "Numero de pagina") int page,
             @RequestParam(defaultValue = "10") @Parameter(description = "Tamano de pagina") int size,
             @RequestParam(defaultValue = "id") @Parameter(description = "Campo por el que ordenar") String sortBy,
-            @RequestParam(defaultValue = "asc") @Parameter(description = "Direccion de ordenamiento") String sortDirection) {
+            @RequestParam(defaultValue = "asc") @Parameter(description = "Direccion de ordenamiento") String sortDirection,
+            @RequestParam(required = false) @Parameter(description = "Busqueda por nombre") String search,
+            @RequestParam(required = false) @Parameter(description = "Filtrar por estado activo") Boolean active) {
         logger.info("Solicitud paginada productos - page: {}, size: {}, sortBy: {}, direction: {}", page, size, sortBy, sortDirection);
         return ResponseEntity.ok(ApiResponseDto.success(
                 "Productos paginados obtenidos correctamente",
-                PageResponseDto.from(productService.findAllPaginated(page, size, sortBy, sortDirection))
+                PageResponseDto.from(productService.findAllPaginated(page, size, sortBy, sortDirection, search, active))
         ));
     }
 
@@ -105,6 +108,25 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
+    @Operation(summary = "Eliminar producto")
+    public ResponseEntity<ApiResponseDto<Void>> delete(
+            @PathVariable @Parameter(description = "ID del producto") Long id) {
+        logger.info("Solicitud para eliminar producto id={}", id);
+        productService.delete(id);
+        return ResponseEntity.ok(ApiResponseDto.success("Producto eliminado correctamente", null));
+    }
+
+    @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasAuthority('PRODUCT_UPDATE')")
+    @Operation(summary = "Activar producto")
+    public ResponseEntity<ApiResponseDto<ProductResponseDto>> activate(
+            @PathVariable @Parameter(description = "ID del producto") Long id) {
+        logger.info("Solicitud para activar producto id={}", id);
+        return ResponseEntity.ok(ApiResponseDto.success("Producto activado correctamente", productService.activate(id)));
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasAuthority('PRODUCT_UPDATE')")
     @Operation(summary = "Desactivar producto")
     public ResponseEntity<ApiResponseDto<Void>> deactivate(
             @PathVariable @Parameter(description = "ID del producto") Long id) {

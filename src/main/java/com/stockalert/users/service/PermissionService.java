@@ -1,11 +1,13 @@
 package com.stockalert.users.service;
 
+import com.stockalert.shared.exception.BusinessException;
 import com.stockalert.shared.exception.NotFoundException;
 import com.stockalert.users.dto.PermissionCreateDto;
 import com.stockalert.users.dto.PermissionResponseDto;
 import com.stockalert.users.dto.PermissionUpdateDto;
 import com.stockalert.users.model.Permission;
 import com.stockalert.users.repository.PermissionRepository;
+import com.stockalert.users.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 public class PermissionService {
 
     private final PermissionRepository permissionRepository;
+    private final RoleRepository roleRepository;
 
     @Transactional(readOnly = true)
     public List<PermissionResponseDto> findAll() {
@@ -40,6 +43,15 @@ public class PermissionService {
         permission.setName(request.getName());
         permission.setDescription(request.getDescription());
         return toResponse(permission);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Permission permission = findEntityById(id);
+        if (roleRepository.existsByPermissions_Id(permission.getId())) {
+            throw new BusinessException("No se puede eliminar el permiso porque esta asignado a roles");
+        }
+        permissionRepository.delete(permission);
     }
 
     @Transactional(readOnly = true)
