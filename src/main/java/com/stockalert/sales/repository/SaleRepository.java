@@ -31,6 +31,12 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
 
     Page<Sale> findByCompanyIdAndStatusAndSaleDateLessThanEqual(Long companyId, SaleStatus status, LocalDateTime end, Pageable pageable);
 
+    List<Sale> findByCompanyIdAndStatusAndSaleDateBetween(Long companyId, SaleStatus status, LocalDateTime start, LocalDateTime end);
+
+    List<Sale> findTop5ByCompanyIdOrderBySaleDateDesc(Long companyId);
+
+    List<Sale> findByCompanyIdAndStatusOrderBySaleDateDesc(Long companyId, SaleStatus status, Pageable pageable);
+
     Optional<Sale> findByIdAndCompanyId(Long id, Long companyId);
 
     long countByCompanyId(Long companyId);
@@ -39,4 +45,6 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     java.math.BigDecimal sumActiveSalesByCompanyIdAndDateBetween(@Param("companyId") Long companyId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     long countByCompanyIdAndSaleDateBetween(Long companyId, LocalDateTime start, LocalDateTime end);
+
+    long countByCompanyIdAndStatusAndSaleDateBetween(Long companyId, SaleStatus status, LocalDateTime start, LocalDateTime end);
 }

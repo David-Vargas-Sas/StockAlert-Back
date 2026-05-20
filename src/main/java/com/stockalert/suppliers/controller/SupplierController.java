@@ -57,6 +57,8 @@ public class SupplierController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
+        logger.info("Solicitud para obtener proveedores paginados - page: {}, size: {}, sortBy: {}, sortDirection: {}",);
+                page, size, sortBy, sortDirection);
         return ResponseEntity.ok(ApiResponseDto.success(
                 "Proveedores paginados obtenidos correctamente",
                 PageResponseDto.from(supplierService.findAllPaginated(page, size, sortBy, sortDirection))
@@ -68,6 +70,7 @@ public class SupplierController {
     @Operation(summary = "Obtener proveedor por ID")
     public ResponseEntity<ApiResponseDto<SupplierResponseDto>> findById(
             @PathVariable @Parameter(description = "ID del proveedor") Long id) {
+        logger.info("Solicitud para obtener proveedor con ID: {}", id);
         return ResponseEntity.ok(ApiResponseDto.success("Proveedor obtenido correctamente", supplierService.findById(id)));
     }
 
@@ -75,6 +78,7 @@ public class SupplierController {
     @PreAuthorize("hasAuthority('SUPPLIER_CREATE')")
     @Operation(summary = "Crear proveedor")
     public ResponseEntity<ApiResponseDto<SupplierResponseDto>> create(@Valid @RequestBody SupplierCreateDto request) {
+        logger.info("Solicitud para crear proveedor");
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponseDto.success("Proveedor creado correctamente", supplierService.create(request)));
     }
@@ -85,6 +89,7 @@ public class SupplierController {
     public ResponseEntity<ApiResponseDto<SupplierResponseDto>> update(
             @PathVariable Long id,
             @Valid @RequestBody SupplierUpdateDto request) {
+        logger.info("Solicitud para actualizar proveedor con ID: {}", id);
         return ResponseEntity.ok(ApiResponseDto.success("Proveedor actualizado correctamente", supplierService.update(id, request)));
     }
 
@@ -92,6 +97,7 @@ public class SupplierController {
     @PreAuthorize("hasAuthority('SUPPLIER_UPDATE')")
     @Operation(summary = "Activar proveedor")
     public ResponseEntity<ApiResponseDto<SupplierResponseDto>> activate(@PathVariable Long id) {
+        logger.info("Solicitud para activar proveedor con ID: {}", id);
         return ResponseEntity.ok(ApiResponseDto.success("Proveedor activado correctamente", supplierService.activate(id)));
     }
 
@@ -99,6 +105,7 @@ public class SupplierController {
     @PreAuthorize("hasAuthority('SUPPLIER_UPDATE')")
     @Operation(summary = "Desactivar proveedor")
     public ResponseEntity<ApiResponseDto<SupplierResponseDto>> deactivate(@PathVariable Long id) {
+        logger.info("Solicitud para desactivar proveedor con ID: {}", id);
         return ResponseEntity.ok(ApiResponseDto.success("Proveedor desactivado correctamente", supplierService.deactivate(id)));
     }
 
@@ -106,6 +113,7 @@ public class SupplierController {
     @PreAuthorize("hasAuthority('SUPPLIER_DELETE')")
     @Operation(summary = "Eliminar proveedor")
     public ResponseEntity<ApiResponseDto<Void>> delete(@PathVariable Long id) {
+        logger.info("Solicitud para eliminar proveedor con ID: {}", id);
         supplierService.delete(id);
         return ResponseEntity.ok(ApiResponseDto.success("Proveedor eliminado correctamente", null));
     }

@@ -11,16 +11,10 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DashboardSummaryDto {
+public class InventorySummaryDto {
 
-    private BigDecimal todaySalesTotal;
-    private Long todaySalesCount;
-    private BigDecimal monthSalesTotal;
-    private Double monthSalesVariationPercentage;
     private Long activeProducts;
     private Long lowStockProducts;
     private Long outOfStockProducts;
-    private Long activeAlerts;
-    private Long todayNewAlerts;
     private BigDecimal stockValue;
 }

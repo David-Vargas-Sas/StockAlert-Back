@@ -33,6 +33,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     long countByCompanyIdAndActive(Long companyId, Boolean active);
 
+    long countByCompanyIdAndStock(Long companyId, Integer stock);
+
     @Query("select coalesce(sum(p.price * p.stock), 0) from Product p where p.company.id = :companyId and p.active = true")
     java.math.BigDecimal calculateStockValueByCompanyId(@Param("companyId") Long companyId);
 }
