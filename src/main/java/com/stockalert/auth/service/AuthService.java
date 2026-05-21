@@ -23,6 +23,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,9 +49,10 @@ public class AuthService {
     private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
     private static final int LOCK_MINUTES = 15;
 
-    @Transactional(noRollbackFor = BadCredentialsException.class)
+    @Transactional(noRollbackFor = AuthenticationException.class)
     public AuthResponseDto login(LoginRequestDto request, HttpServletRequest httpRequest) {
-        User userForLockValidation = userRepository.findByUsername(request.getUsername()).orElse(null);
+        String username = normalizeUsername(request.getUsername());
+        User userForLockValidation = userRepository.findByUsername(username).orElse(null);
         if (userForLockValidation != null) {
             validateUserCanStartSession(userForLockValidation);
         }
@@ -58,11 +60,11 @@ public class AuthService {
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(username, request.getPassword())
             );
-        } catch (BadCredentialsException exception) {
-            registerFailedLogin(request.getUsername(), getClientIp(httpRequest));
-            throw exception;
+        } catch (AuthenticationException exception) {
+            registerFailedLogin(username, getClientIp(httpRequest));
+            throw new BadCredentialsException("Credenciales invalidas");
         }
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = userService.findEntityByUsername(principal.getUsername());
@@ -134,11 +136,11 @@ public class AuthService {
     }
 
     private void closeActiveSessions(User user, String ipAddress, String message) {
-        refreshTokenRepository.findByUserIdAndRevokedFalseAndExpiresAtAfter(user.getId(), LocalDateTime.now())
-                .forEach(refreshToken -> {
-                    revokeRefreshToken(refreshToken);
-                    logSession(user, SessionEventType.LOGOUT, ipAddress, message);
-                });
+        LocalDateTime now = LocalDateTime.now();
+        int revoked = refreshTokenRepository.revokeActiveTokensByUserId(user.getId(), now, now);
+        if (revoked > 0) {
+            logSession(user, SessionEventType.LOGOUT, ipAddress, message + ". Sesiones cerradas: " + revoked);
+        }
     }
 
     private void closeAuthenticatedUserSessions(HttpServletRequest request) {
@@ -184,6 +186,10 @@ public class AuthService {
         byte[] bytes = new byte[48];
         new SecureRandom().nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String normalizeUsername(String username) {
+        return username == null ? "" : username.trim();
     }
 
     private void logSession(User user, SessionEventType eventType, String ipAddress, String message) {

@@ -3,6 +3,7 @@ package com.stockalert.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -43,8 +44,11 @@ public class SecurityConfig {
                         .accessDeniedHandler(restAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/companies/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/permissions").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/permissions/available").authenticated()
                         .requestMatchers("/api/permissions/**").hasRole("SUPER_ADMIN")
                         .anyRequest().authenticated()
                 )
@@ -77,11 +81,13 @@ public class SecurityConfig {
                 "http://localhost:*",
                 "https://localhost:*",
                 "http://127.0.0.1:*",
-                "https://127.0.0.1:*"
+                "https://127.0.0.1:*",
+                "https://david-vargas-sas.github.io",
+                "https://*.github.io"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

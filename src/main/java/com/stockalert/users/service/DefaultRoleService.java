@@ -31,6 +31,7 @@ public class DefaultRoleService {
                 "ROLE_CREATE",
                 "ROLE_UPDATE",
                 "ROLE_DELETE",
+                "PERMISSION_READ",
                 "PRODUCT_READ",
                 "PRODUCT_CREATE",
                 "PRODUCT_UPDATE",
@@ -78,6 +79,8 @@ public class DefaultRoleService {
                 "PURCHASE_CANCEL",
                 "INVENTORY_READ",
                 "INVENTORY_ADJUST",
+                "DASHBOARD_READ",
+                "SALE_READ",
                 "ALERT_READ",
                 "ALERT_RESOLVE"
         ));
