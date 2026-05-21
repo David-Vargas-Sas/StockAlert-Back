@@ -162,6 +162,7 @@ public class DashboardService {
                 .customerName(sale.getCustomer() != null ? sale.getCustomer().getFullName() : null)
                 .total(sale.getTotal())
                 .status(sale.getStatus())
+                .statusLabel(sale.getStatus().getLabel())
                 .saleDate(sale.getSaleDate())
                 .build();
     }

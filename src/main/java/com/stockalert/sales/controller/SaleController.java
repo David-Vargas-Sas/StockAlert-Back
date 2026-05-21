@@ -101,4 +101,14 @@ public class SaleController {
         logger.info("Solicitud para anular venta id={}", id);
         return ResponseEntity.ok(ApiResponseDto.success("Venta anulada correctamente", saleService.cancel(id)));
     }
+
+    @PostMapping("/{id}/send-invoice")
+    @PreAuthorize("hasAuthority('SALE_READ')")
+    @Operation(summary = "Enviar factura de venta por correo")
+    public ResponseEntity<ApiResponseDto<Void>> sendInvoice(
+            @PathVariable @Parameter(description = "ID de la venta") Long id) {
+        logger.info("Solicitud para enviar factura por correo venta id={}", id);
+        saleService.sendInvoiceEmail(id);
+        return ResponseEntity.ok(ApiResponseDto.success("Factura enviada por correo correctamente", null));
+    }
 }

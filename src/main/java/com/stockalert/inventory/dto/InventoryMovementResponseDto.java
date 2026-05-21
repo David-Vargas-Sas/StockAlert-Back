@@ -19,6 +19,7 @@ public class InventoryMovementResponseDto {
     private Long productId;
     private String productName;
     private InventoryMovementType type;
+    private String typeLabel;
     private Integer quantity;
     private Integer previousStock;
     private Integer newStock;

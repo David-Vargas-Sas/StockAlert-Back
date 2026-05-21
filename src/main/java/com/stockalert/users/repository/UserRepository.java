@@ -29,5 +29,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByCompanyIdAndRoles_Name(Long companyId, String roleName);
 
+    @EntityGraph(attributePaths = {"company", "roles", "roles.permissions"})
+    Optional<User> findFirstByCompanyIdAndRoles_Name(Long companyId, String roleName);
+
     boolean existsByRoles_Id(Long roleId);
 }

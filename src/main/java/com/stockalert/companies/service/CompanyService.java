@@ -7,6 +7,7 @@ import com.stockalert.companies.dto.CompanyUpdateDto;
 import com.stockalert.companies.model.Company;
 import com.stockalert.companies.model.CompanyStatus;
 import com.stockalert.companies.repository.CompanyRepository;
+import com.stockalert.security.CurrentUserService;
 import com.stockalert.shared.exception.BusinessException;
 import com.stockalert.shared.exception.NotFoundException;
 import com.stockalert.shared.service.AuditService;
@@ -42,6 +43,7 @@ public class CompanyService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CurrentUserService currentUserService;
 
     @Transactional(readOnly = true)
     public Page<CompanyResponseDto> findAllPaginated(int page, int size, String sortBy, String sortDirection) {
@@ -169,6 +171,33 @@ public class CompanyService {
     }
 
     @Transactional(readOnly = true)
+    public UserResponseDto findCompanyAdmin(Long companyId) {
+        currentUserService.validateSameCompanyOrSuperAdmin(companyId);
+        findEntityById(companyId);
+        User admin = userRepository.findFirstByCompanyIdAndRoles_Name(companyId, COMPANY_ADMIN_ROLE)
+                .orElseThrow(() -> new NotFoundException("Administrador no encontrado para la empresa: " + companyId));
+        return toUserResponse(admin);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserResponseDto> findCompanyUsers(Long companyId) {
+        currentUserService.validateSameCompanyOrSuperAdmin(companyId);
+        findEntityById(companyId);
+        return userRepository.findByCompanyId(companyId).stream()
+                .map(this::toUserResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserResponseDto> findCompanyUsersPaginated(Long companyId, int page, int size, String sortBy, String sortDirection) {
+        currentUserService.validateSameCompanyOrSuperAdmin(companyId);
+        findEntityById(companyId);
+        Sort sort = buildSort(sortBy, sortDirection);
+        return userRepository.findByCompanyId(companyId, PageRequest.of(page, size, sort))
+                .map(this::toUserResponse);
+    }
+
+    @Transactional(readOnly = true)
     public Company findEntityById(Long id) {
         return companyRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Empresa no encontrada con id: " + id));
@@ -192,6 +221,7 @@ public class CompanyService {
                 .website(company.getWebsite())
                 .logoPath(company.getLogoPath())
                 .status(company.getStatus())
+                .statusLabel(company.getStatus().getLabel())
                 .createdAt(company.getCreatedAt())
                 .updatedAt(company.getUpdatedAt())
                 .build();

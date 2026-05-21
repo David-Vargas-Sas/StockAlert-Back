@@ -17,6 +17,16 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
 
     Page<Sale> findByCompanyId(Long companyId, Pageable pageable);
 
+    List<Sale> findByCompanyIdAndCustomerIdOrderBySaleDateDesc(Long companyId, Long customerId);
+
+    Page<Sale> findByCompanyIdAndCustomerId(Long companyId, Long customerId, Pageable pageable);
+
+    Page<Sale> findByCompanyIdAndCustomerIdAndSaleDateBetween(Long companyId, Long customerId, LocalDateTime start, LocalDateTime end, Pageable pageable);
+
+    Page<Sale> findByCompanyIdAndCustomerIdAndSaleDateGreaterThanEqual(Long companyId, Long customerId, LocalDateTime start, Pageable pageable);
+
+    Page<Sale> findByCompanyIdAndCustomerIdAndSaleDateLessThanEqual(Long companyId, Long customerId, LocalDateTime end, Pageable pageable);
+
     Page<Sale> findByCompanyIdAndStatus(Long companyId, SaleStatus status, Pageable pageable);
 
     Page<Sale> findByCompanyIdAndSaleDateBetween(Long companyId, LocalDateTime start, LocalDateTime end, Pageable pageable);
@@ -40,6 +50,8 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     Optional<Sale> findByIdAndCompanyId(Long id, Long companyId);
 
     long countByCompanyId(Long companyId);
+
+    long countByCompanyIdAndInvoiceNumberIsNotNull(Long companyId);
 
     @org.springframework.data.jpa.repository.Query("select coalesce(sum(s.total), 0) from Sale s where s.company.id = :companyId and s.status = com.stockalert.sales.model.SaleStatus.ACTIVE and s.saleDate between :start and :end")
     java.math.BigDecimal sumActiveSalesByCompanyIdAndDateBetween(@Param("companyId") Long companyId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);

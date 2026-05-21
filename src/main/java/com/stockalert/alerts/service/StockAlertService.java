@@ -87,6 +87,7 @@ public class StockAlertService {
                 .productName(product.getName())
                 .message(alert.getMessage())
                 .status(alert.getStatus())
+                .statusLabel(alert.getStatus().getLabel())
                 .createdAt(alert.getCreatedAt())
                 .build();
     }

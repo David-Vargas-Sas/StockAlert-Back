@@ -31,6 +31,9 @@ public class ProductCreateDto {
     @DecimalMin(value = "0.01", message = "El precio del producto debe ser mayor que cero")
     private BigDecimal price;
 
+    @DecimalMin(value = "0.00", message = "El costo del producto no puede ser negativo")
+    private BigDecimal cost;
+
     @NotNull(message = "El stock del producto es obligatorio")
     @Min(value = 0, message = "El stock del producto no puede ser negativo")
     private Integer stock;

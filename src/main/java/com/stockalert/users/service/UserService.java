@@ -57,6 +57,24 @@ public class UserService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<UserResponseDto> findAllByCompanyId(Long companyId) {
+        currentUserService.validateSameCompanyOrSuperAdmin(companyId);
+        companyService.findEntityById(companyId);
+        return userRepository.findByCompanyId(companyId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserResponseDto> findAllByCompanyIdPaginated(Long companyId, int page, int size, String sortBy, String sortDirection) {
+        currentUserService.validateSameCompanyOrSuperAdmin(companyId);
+        companyService.findEntityById(companyId);
+        Sort sort = buildSort(sortBy, sortDirection);
+        return userRepository.findByCompanyId(companyId, PageRequest.of(page, size, sort))
+                .map(this::toResponse);
+    }
+
     @Transactional
     public UserResponseDto create(UserCreateDto request) {
         if (userRepository.existsByUsername(request.getUsername())) {

@@ -22,6 +22,7 @@ public class PurchaseResponseDto {
     private String supplierName;
     private LocalDateTime purchaseDate;
     private PurchaseStatus status;
+    private String statusLabel;
     private BigDecimal total;
     private LocalDateTime cancelledAt;
     private String cancelledBy;

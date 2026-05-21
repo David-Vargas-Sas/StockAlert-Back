@@ -30,6 +30,7 @@ public class CompanyResponseDto {
     private String website;
     private String logoPath;
     private CompanyStatus status;
+    private String statusLabel;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

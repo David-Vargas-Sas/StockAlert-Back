@@ -51,6 +51,9 @@ public class Sale {
     @Column(name = "sale_number", length = 30)
     private String saleNumber;
 
+    @Column(name = "invoice_number", length = 30)
+    private String invoiceNumber;
+
     @Column(name = "sale_date", nullable = false)
     private LocalDateTime saleDate;
 

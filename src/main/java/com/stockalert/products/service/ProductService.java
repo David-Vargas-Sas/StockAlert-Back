@@ -2,6 +2,10 @@ package com.stockalert.products.service;
 
 import com.stockalert.companies.model.Company;
 import com.stockalert.companies.service.CompanyService;
+import com.stockalert.audit.service.AuditLogService;
+import com.stockalert.inventory.model.InventoryMovement;
+import com.stockalert.inventory.model.InventoryMovementType;
+import com.stockalert.inventory.repository.InventoryMovementRepository;
 import com.stockalert.products.dto.ProductCreateDto;
 import com.stockalert.products.dto.ProductResponseDto;
 import com.stockalert.products.dto.ProductUpdateDto;
@@ -19,6 +23,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -30,6 +35,8 @@ public class ProductService {
     private final CurrentUserService currentUserService;
     private final AuditService auditService;
     private final SupplierService supplierService;
+    private final InventoryMovementRepository inventoryMovementRepository;
+    private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public List<ProductResponseDto> findAll() {
@@ -75,29 +82,43 @@ public class ProductService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .price(request.getPrice())
+                .cost(resolveCost(request.getCost()))
+                .lastCost(resolveCost(request.getCost()))
                 .stock(request.getStock())
                 .minimumStock(request.getMinimumStock())
                 .active(true)
                 .createdBy(auditService.getCurrentUsername())
                 .build();
 
-        return toResponse(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        if (saved.getStock() > 0) {
+            recordInventoryMovement(saved, InventoryMovementType.INITIAL_STOCK, saved.getStock(), 0, saved.getStock(),
+                    "PRODUCT", saved.getId(), "Stock inicial del producto");
+        }
+        auditLogService.record("CREATE", "Product", saved.getId(), "Producto creado: " + saved.getName());
+        return toResponse(saved);
     }
 
     @Transactional
     public ProductResponseDto update(Long id, ProductUpdateDto request) {
         Product product = findEntityByIdForCurrentCompany(id);
+        int previousStock = product.getStock();
         Supplier supplier = request.getSupplierId() != null ? supplierService.findEntityByIdForCurrentCompany(request.getSupplierId()) : null;
         product.setSupplier(supplier);
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
+        if (request.getCost() != null) {
+            product.setCost(request.getCost());
+        }
         product.setStock(request.getStock());
         product.setMinimumStock(request.getMinimumStock());
         if (request.getActive() != null) {
             product.setActive(request.getActive());
         }
         product.setUpdatedBy(auditService.getCurrentUsername());
+        registerStockUpdateMovement(product, previousStock, request.getStock());
+        auditLogService.record("UPDATE", "Product", product.getId(), "Producto actualizado: " + product.getName());
         return toResponse(product);
     }
 
@@ -106,6 +127,7 @@ public class ProductService {
         Product product = findEntityByIdForCurrentCompany(id);
         product.setActive(false);
         product.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("DEACTIVATE", "Product", product.getId(), "Producto desactivado: " + product.getName());
     }
 
     @Transactional
@@ -114,6 +136,7 @@ public class ProductService {
         product.setActive(true);
         product.setDeletedAt(null);
         product.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("ACTIVATE", "Product", product.getId(), "Producto activado: " + product.getName());
         return toResponse(product);
     }
 
@@ -123,6 +146,7 @@ public class ProductService {
         product.setActive(false);
         product.setDeletedAt(java.time.LocalDateTime.now());
         product.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("DELETE", "Product", product.getId(), "Producto eliminado: " + product.getName());
     }
 
     @Transactional(readOnly = true)
@@ -153,6 +177,8 @@ public class ProductService {
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
+                .cost(product.getCost())
+                .lastCost(product.getLastCost())
                 .stock(product.getStock())
                 .minimumStock(product.getMinimumStock())
                 .active(product.getActive())
@@ -163,5 +189,44 @@ public class ProductService {
     private Sort buildSort(String sortBy, String sortDirection) {
         Sort.Direction direction = "desc".equalsIgnoreCase(sortDirection) ? Sort.Direction.DESC : Sort.Direction.ASC;
         return Sort.by(direction, sortBy);
+    }
+
+    private BigDecimal resolveCost(BigDecimal cost) {
+        return cost != null ? cost : BigDecimal.ZERO;
+    }
+
+    private void registerStockUpdateMovement(Product product, int previousStock, int newStock) {
+        if (newStock == previousStock) {
+            return;
+        }
+        InventoryMovementType type = newStock > previousStock
+                ? InventoryMovementType.ADJUSTMENT_IN
+                : InventoryMovementType.ADJUSTMENT_OUT;
+        int quantity = Math.abs(newStock - previousStock);
+        recordInventoryMovement(product, type, quantity, previousStock, newStock, "PRODUCT", product.getId(), "Ajuste manual desde producto");
+    }
+
+    private void recordInventoryMovement(
+            Product product,
+            InventoryMovementType type,
+            Integer quantity,
+            Integer previousStock,
+            Integer newStock,
+            String referenceType,
+            Long referenceId,
+            String notes
+    ) {
+        inventoryMovementRepository.save(InventoryMovement.builder()
+                .company(product.getCompany())
+                .product(product)
+                .type(type)
+                .quantity(quantity)
+                .previousStock(previousStock)
+                .newStock(newStock)
+                .referenceType(referenceType)
+                .referenceId(referenceId)
+                .notes(notes)
+                .createdBy(auditService.getCurrentUsername())
+                .build());
     }
 }

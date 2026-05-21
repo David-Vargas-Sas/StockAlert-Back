@@ -21,5 +21,6 @@ public class LatestSaleDto {
     private String customerName;
     private BigDecimal total;
     private SaleStatus status;
+    private String statusLabel;
     private LocalDateTime saleDate;
 }

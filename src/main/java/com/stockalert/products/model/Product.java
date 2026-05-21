@@ -51,6 +51,12 @@ public class Product {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Column(nullable = false, precision = 10, scale = 2, columnDefinition = "numeric(10,2) default 0")
+    private BigDecimal cost;
+
+    @Column(name = "last_cost", nullable = false, precision = 10, scale = 2, columnDefinition = "numeric(10,2) default 0")
+    private BigDecimal lastCost;
+
     @Column(nullable = false)
     private Integer stock;
 
@@ -79,6 +85,12 @@ public class Product {
     void prePersist() {
         if (active == null) {
             active = true;
+        }
+        if (cost == null) {
+            cost = BigDecimal.ZERO;
+        }
+        if (lastCost == null) {
+            lastCost = BigDecimal.ZERO;
         }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();

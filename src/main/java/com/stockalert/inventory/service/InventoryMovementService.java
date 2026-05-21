@@ -1,6 +1,7 @@
 package com.stockalert.inventory.service;
 
 import com.stockalert.inventory.dto.InventoryAdjustmentDto;
+import com.stockalert.audit.service.AuditLogService;
 import com.stockalert.inventory.dto.InventoryMovementResponseDto;
 import com.stockalert.inventory.model.InventoryMovement;
 import com.stockalert.inventory.model.InventoryMovementType;
@@ -25,6 +26,7 @@ public class InventoryMovementService {
     private final ProductService productService;
     private final CurrentUserService currentUserService;
     private final AuditService auditService;
+    private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public Page<InventoryMovementResponseDto> findAllPaginated(Long productId, int page, int size, String sortBy, String sortDirection) {
@@ -43,8 +45,10 @@ public class InventoryMovementService {
         int previousStock = product.getStock();
         product.setStock(previousStock + request.getQuantity());
         product.setUpdatedBy(auditService.getCurrentUsername());
-        return toResponse(record(product, InventoryMovementType.ADJUSTMENT_IN, request.getQuantity(), previousStock, product.getStock(),
-                "ADJUSTMENT", null, request.getNotes()));
+        InventoryMovement movement = record(product, InventoryMovementType.ADJUSTMENT_IN, request.getQuantity(), previousStock, product.getStock(),
+                "ADJUSTMENT", null, request.getNotes());
+        auditLogService.record("ADJUSTMENT_IN", "Product", product.getId(), "Ajuste de entrada de inventario");
+        return toResponse(movement);
     }
 
     @Transactional
@@ -56,8 +60,10 @@ public class InventoryMovementService {
         int previousStock = product.getStock();
         product.setStock(previousStock - request.getQuantity());
         product.setUpdatedBy(auditService.getCurrentUsername());
-        return toResponse(record(product, InventoryMovementType.ADJUSTMENT_OUT, request.getQuantity(), previousStock, product.getStock(),
-                "ADJUSTMENT", null, request.getNotes()));
+        InventoryMovement movement = record(product, InventoryMovementType.ADJUSTMENT_OUT, request.getQuantity(), previousStock, product.getStock(),
+                "ADJUSTMENT", null, request.getNotes());
+        auditLogService.record("ADJUSTMENT_OUT", "Product", product.getId(), "Ajuste de salida de inventario");
+        return toResponse(movement);
     }
 
     @Transactional
@@ -92,6 +98,7 @@ public class InventoryMovementService {
                 .productId(movement.getProduct().getId())
                 .productName(movement.getProduct().getName())
                 .type(movement.getType())
+                .typeLabel(movement.getType().getLabel())
                 .quantity(movement.getQuantity())
                 .previousStock(movement.getPreviousStock())
                 .newStock(movement.getNewStock())

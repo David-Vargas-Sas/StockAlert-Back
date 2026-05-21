@@ -2,6 +2,7 @@ package com.stockalert.purchases.service;
 
 import com.stockalert.companies.model.Company;
 import com.stockalert.companies.service.CompanyService;
+import com.stockalert.audit.service.AuditLogService;
 import com.stockalert.inventory.model.InventoryMovementType;
 import com.stockalert.inventory.service.InventoryMovementService;
 import com.stockalert.products.model.Product;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -42,6 +44,7 @@ public class PurchaseService {
     private final InventoryMovementService inventoryMovementService;
     private final CurrentUserService currentUserService;
     private final AuditService auditService;
+    private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public List<PurchaseResponseDto> findAll() {
@@ -77,7 +80,9 @@ public class PurchaseService {
             Product product = productService.findEntityByIdForCurrentCompany(item.getProductId());
             BigDecimal subtotal = item.getUnitCost().multiply(BigDecimal.valueOf(item.getQuantity()));
             int previousStock = product.getStock();
+            BigDecimal previousCost = product.getCost();
             product.setStock(previousStock + item.getQuantity());
+            updateWeightedAverageCost(product, previousStock, previousCost, item.getQuantity(), item.getUnitCost());
             product.setUpdatedBy(auditService.getCurrentUsername());
 
             PurchaseDetail detail = PurchaseDetail.builder()
@@ -98,6 +103,7 @@ public class PurchaseService {
             inventoryMovementService.record(product, InventoryMovementType.PURCHASE, detail.getQuantity(),
                     product.getStock() - detail.getQuantity(), product.getStock(), "PURCHASE", saved.getId(), "Compra recibida");
         }
+        auditLogService.record("CREATE", "Purchase", saved.getId(), "Compra registrada");
         return toResponse(saved);
     }
 
@@ -116,7 +122,9 @@ public class PurchaseService {
         for (PurchaseDetail detail : purchase.getDetails()) {
             Product product = detail.getProduct();
             int previousStock = product.getStock();
+            BigDecimal previousCost = product.getCost();
             product.setStock(previousStock - detail.getQuantity());
+            rollbackWeightedAverageCost(product, previousStock, previousCost, detail.getQuantity(), detail.getUnitCost());
             product.setUpdatedBy(auditService.getCurrentUsername());
             inventoryMovementService.record(product, InventoryMovementType.PURCHASE_CANCEL, detail.getQuantity(),
                     previousStock, product.getStock(), "PURCHASE", purchase.getId(), "Anulacion de compra");
@@ -124,6 +132,7 @@ public class PurchaseService {
         purchase.setStatus(PurchaseStatus.CANCELLED);
         purchase.setCancelledAt(LocalDateTime.now());
         purchase.setCancelledBy(auditService.getCurrentUsername());
+        auditLogService.record("CANCEL", "Purchase", purchase.getId(), "Compra anulada");
         return toResponse(purchase);
     }
 
@@ -150,10 +159,41 @@ public class PurchaseService {
                 .supplierName(purchase.getSupplier() != null ? purchase.getSupplier().getName() : null)
                 .purchaseDate(purchase.getPurchaseDate())
                 .status(purchase.getStatus())
+                .statusLabel(purchase.getStatus().getLabel())
                 .total(purchase.getTotal())
                 .cancelledAt(purchase.getCancelledAt())
                 .cancelledBy(purchase.getCancelledBy())
                 .details(details)
                 .build();
+    }
+
+    private void updateWeightedAverageCost(Product product, int previousStock, BigDecimal previousCost, int purchasedQuantity, BigDecimal unitCost) {
+        int newStock = previousStock + purchasedQuantity;
+        BigDecimal currentInventoryValue = safeCost(previousCost).multiply(BigDecimal.valueOf(previousStock));
+        BigDecimal purchaseValue = unitCost.multiply(BigDecimal.valueOf(purchasedQuantity));
+        BigDecimal newAverage = newStock > 0
+                ? currentInventoryValue.add(purchaseValue).divide(BigDecimal.valueOf(newStock), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        product.setCost(newAverage);
+        product.setLastCost(unitCost);
+    }
+
+    private void rollbackWeightedAverageCost(Product product, int previousStock, BigDecimal previousCost, int cancelledQuantity, BigDecimal unitCost) {
+        int newStock = previousStock - cancelledQuantity;
+        if (newStock <= 0) {
+            product.setCost(BigDecimal.ZERO);
+            return;
+        }
+        BigDecimal previousInventoryValue = safeCost(previousCost).multiply(BigDecimal.valueOf(previousStock));
+        BigDecimal cancelledValue = unitCost.multiply(BigDecimal.valueOf(cancelledQuantity));
+        BigDecimal adjustedValue = previousInventoryValue.subtract(cancelledValue);
+        if (adjustedValue.compareTo(BigDecimal.ZERO) < 0) {
+            adjustedValue = BigDecimal.ZERO;
+        }
+        product.setCost(adjustedValue.divide(BigDecimal.valueOf(newStock), 2, RoundingMode.HALF_UP));
+    }
+
+    private BigDecimal safeCost(BigDecimal cost) {
+        return cost != null ? cost : BigDecimal.ZERO;
     }
 }

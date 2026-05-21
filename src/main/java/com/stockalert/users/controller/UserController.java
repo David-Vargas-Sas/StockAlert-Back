@@ -66,6 +66,35 @@ public class UserController {
         ));
     }
 
+    @GetMapping("/company/{companyId}")
+    @PreAuthorize("hasAuthority('USER_READ')")
+    @Operation(summary = "Obtener usuarios por empresa")
+    public ResponseEntity<ApiResponseDto<List<UserResponseDto>>> findAllByCompanyId(
+            @PathVariable @Parameter(description = "ID de la empresa") Long companyId) {
+        logger.info("Solicitud para obtener usuarios de empresa id={}", companyId);
+        return ResponseEntity.ok(ApiResponseDto.success(
+                "Usuarios de empresa obtenidos correctamente",
+                userService.findAllByCompanyId(companyId)
+        ));
+    }
+
+    @GetMapping("/company/{companyId}/paginated")
+    @PreAuthorize("hasAuthority('USER_READ')")
+    @Operation(summary = "Obtener usuarios paginados por empresa")
+    public ResponseEntity<ApiResponseDto<PageResponseDto<UserResponseDto>>> findAllByCompanyIdPaginated(
+            @PathVariable @Parameter(description = "ID de la empresa") Long companyId,
+            @RequestParam(defaultValue = "0") @Parameter(description = "Numero de pagina") int page,
+            @RequestParam(defaultValue = "10") @Parameter(description = "Tamano de pagina") int size,
+            @RequestParam(defaultValue = "id") @Parameter(description = "Campo por el que ordenar") String sortBy,
+            @RequestParam(defaultValue = "asc") @Parameter(description = "Direccion de ordenamiento") String sortDirection) {
+        logger.info("Solicitud paginada usuarios de empresa id={} - page: {}, size: {}, sortBy: {}, direction: {}",
+                companyId, page, size, sortBy, sortDirection);
+        return ResponseEntity.ok(ApiResponseDto.success(
+                "Usuarios paginados de empresa obtenidos correctamente",
+                PageResponseDto.from(userService.findAllByCompanyIdPaginated(companyId, page, size, sortBy, sortDirection))
+        ));
+    }
+
     @PostMapping
     @PreAuthorize("hasAuthority('USER_CREATE')")
     @Operation(summary = "Crear usuario")

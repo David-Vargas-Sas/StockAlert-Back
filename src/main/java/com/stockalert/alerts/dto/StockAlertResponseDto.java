@@ -20,5 +20,6 @@ public class StockAlertResponseDto {
     private String productName;
     private String message;
     private AlertStatus status;
+    private String statusLabel;
     private LocalDateTime createdAt;
 }

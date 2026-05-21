@@ -2,6 +2,7 @@ package com.stockalert.suppliers.service;
 
 import com.stockalert.companies.model.Company;
 import com.stockalert.companies.service.CompanyService;
+import com.stockalert.audit.service.AuditLogService;
 import com.stockalert.security.CurrentUserService;
 import com.stockalert.shared.exception.NotFoundException;
 import com.stockalert.shared.service.AuditService;
@@ -28,6 +29,7 @@ public class SupplierService {
     private final CompanyService companyService;
     private final CurrentUserService currentUserService;
     private final AuditService auditService;
+    private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public List<SupplierResponseDto> findAll() {
@@ -60,7 +62,9 @@ public class SupplierService {
                 .active(true)
                 .createdBy(auditService.getCurrentUsername())
                 .build();
-        return toResponse(supplierRepository.save(supplier));
+        Supplier saved = supplierRepository.save(supplier);
+        auditLogService.record("CREATE", "Supplier", saved.getId(), "Proveedor creado: " + saved.getName());
+        return toResponse(saved);
     }
 
     @Transactional
@@ -76,6 +80,7 @@ public class SupplierService {
             supplier.setActive(request.getActive());
         }
         supplier.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("UPDATE", "Supplier", supplier.getId(), "Proveedor actualizado: " + supplier.getName());
         return toResponse(supplier);
     }
 
@@ -85,6 +90,7 @@ public class SupplierService {
         supplier.setActive(true);
         supplier.setDeletedAt(null);
         supplier.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("ACTIVATE", "Supplier", supplier.getId(), "Proveedor activado: " + supplier.getName());
         return toResponse(supplier);
     }
 
@@ -93,6 +99,7 @@ public class SupplierService {
         Supplier supplier = findEntityByIdForCurrentCompany(id);
         supplier.setActive(false);
         supplier.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("DEACTIVATE", "Supplier", supplier.getId(), "Proveedor desactivado: " + supplier.getName());
         return toResponse(supplier);
     }
 
@@ -102,6 +109,7 @@ public class SupplierService {
         supplier.setActive(false);
         supplier.setDeletedAt(LocalDateTime.now());
         supplier.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("DELETE", "Supplier", supplier.getId(), "Proveedor eliminado: " + supplier.getName());
     }
 
     @Transactional(readOnly = true)

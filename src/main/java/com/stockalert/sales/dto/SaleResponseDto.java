@@ -21,8 +21,12 @@ public class SaleResponseDto {
     private Long customerId;
     private String customerName;
     private String saleNumber;
+    private String invoiceNumber;
     private LocalDateTime saleDate;
+    private String createdBy;
+    private String sellerName;
     private SaleStatus status;
+    private String statusLabel;
     private LocalDateTime cancelledAt;
     private String cancelledBy;
     private BigDecimal total;

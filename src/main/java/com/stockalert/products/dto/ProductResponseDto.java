@@ -21,6 +21,8 @@ public class ProductResponseDto {
     private String name;
     private String description;
     private BigDecimal price;
+    private BigDecimal cost;
+    private BigDecimal lastCost;
     private Integer stock;
     private Integer minimumStock;
     private Boolean active;

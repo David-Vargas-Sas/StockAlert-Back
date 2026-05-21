@@ -108,6 +108,47 @@ public class CompanyController {
                 .body(ApiResponseDto.success("Administrador de empresa creado correctamente", created));
     }
 
+    @GetMapping("/{companyId}/admin")
+    @PreAuthorize("hasAuthority('COMPANY_READ') and hasAuthority('USER_READ')")
+    @Operation(summary = "Obtener administrador de empresa")
+    public ResponseEntity<ApiResponseDto<UserResponseDto>> findCompanyAdmin(
+            @PathVariable @Parameter(description = "ID de la empresa") Long companyId) {
+        logger.info("Solicitud para obtener administrador de empresa id={}", companyId);
+        return ResponseEntity.ok(ApiResponseDto.success(
+                "Administrador de empresa obtenido correctamente",
+                companyService.findCompanyAdmin(companyId)
+        ));
+    }
+
+    @GetMapping("/{companyId}/users")
+    @PreAuthorize("hasAuthority('COMPANY_READ') and hasAuthority('USER_READ')")
+    @Operation(summary = "Obtener usuarios de una empresa")
+    public ResponseEntity<ApiResponseDto<List<UserResponseDto>>> findCompanyUsers(
+            @PathVariable @Parameter(description = "ID de la empresa") Long companyId) {
+        logger.info("Solicitud para obtener usuarios de empresa id={}", companyId);
+        return ResponseEntity.ok(ApiResponseDto.success(
+                "Usuarios de empresa obtenidos correctamente",
+                companyService.findCompanyUsers(companyId)
+        ));
+    }
+
+    @GetMapping("/{companyId}/users/paginated")
+    @PreAuthorize("hasAuthority('COMPANY_READ') and hasAuthority('USER_READ')")
+    @Operation(summary = "Obtener usuarios paginados de una empresa")
+    public ResponseEntity<ApiResponseDto<PageResponseDto<UserResponseDto>>> findCompanyUsersPaginated(
+            @PathVariable @Parameter(description = "ID de la empresa") Long companyId,
+            @RequestParam(defaultValue = "0") @Parameter(description = "Numero de pagina") int page,
+            @RequestParam(defaultValue = "10") @Parameter(description = "Tamano de pagina") int size,
+            @RequestParam(defaultValue = "id") @Parameter(description = "Campo por el que ordenar") String sortBy,
+            @RequestParam(defaultValue = "asc") @Parameter(description = "Direccion de ordenamiento") String sortDirection) {
+        logger.info("Solicitud paginada usuarios de empresa id={} - page: {}, size: {}, sortBy: {}, direction: {}",
+                companyId, page, size, sortBy, sortDirection);
+        return ResponseEntity.ok(ApiResponseDto.success(
+                "Usuarios paginados de empresa obtenidos correctamente",
+                PageResponseDto.from(companyService.findCompanyUsersPaginated(companyId, page, size, sortBy, sortDirection))
+        ));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('COMPANY_DELETE')")
     @Operation(summary = "Eliminar empresa")

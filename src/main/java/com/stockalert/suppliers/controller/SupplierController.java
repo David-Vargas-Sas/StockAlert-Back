@@ -57,7 +57,7 @@ public class SupplierController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
-        logger.info("Solicitud para obtener proveedores paginados - page: {}, size: {}, sortBy: {}, sortDirection: {}",);
+        logger.info("Solicitud para obtener proveedores paginados - page: {}, size: {}, sortBy: {}, sortDirection: {}",
                 page, size, sortBy, sortDirection);
         return ResponseEntity.ok(ApiResponseDto.success(
                 "Proveedores paginados obtenidos correctamente",

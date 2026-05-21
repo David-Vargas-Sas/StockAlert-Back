@@ -2,6 +2,7 @@ package com.stockalert.customers.service;
 
 import com.stockalert.companies.model.Company;
 import com.stockalert.companies.service.CompanyService;
+import com.stockalert.audit.service.AuditLogService;
 import com.stockalert.customers.dto.CustomerCreateDto;
 import com.stockalert.customers.dto.CustomerResponseDto;
 import com.stockalert.customers.dto.CustomerUpdateDto;
@@ -28,6 +29,7 @@ public class CustomerService {
     private final CompanyService companyService;
     private final CurrentUserService currentUserService;
     private final AuditService auditService;
+    private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public List<CustomerResponseDto> findAll() {
@@ -59,7 +61,9 @@ public class CustomerService {
                 .active(true)
                 .createdBy(auditService.getCurrentUsername())
                 .build();
-        return toResponse(customerRepository.save(customer));
+        Customer saved = customerRepository.save(customer);
+        auditLogService.record("CREATE", "Customer", saved.getId(), "Cliente creado: " + saved.getFullName());
+        return toResponse(saved);
     }
 
     @Transactional
@@ -74,6 +78,7 @@ public class CustomerService {
             customer.setActive(request.getActive());
         }
         customer.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("UPDATE", "Customer", customer.getId(), "Cliente actualizado: " + customer.getFullName());
         return toResponse(customer);
     }
 
@@ -83,6 +88,7 @@ public class CustomerService {
         customer.setActive(true);
         customer.setDeletedAt(null);
         customer.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("ACTIVATE", "Customer", customer.getId(), "Cliente activado: " + customer.getFullName());
         return toResponse(customer);
     }
 
@@ -91,6 +97,7 @@ public class CustomerService {
         Customer customer = findEntityByIdForCurrentCompany(id);
         customer.setActive(false);
         customer.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("DEACTIVATE", "Customer", customer.getId(), "Cliente desactivado: " + customer.getFullName());
         return toResponse(customer);
     }
 
@@ -100,6 +107,7 @@ public class CustomerService {
         customer.setActive(false);
         customer.setDeletedAt(LocalDateTime.now());
         customer.setUpdatedBy(auditService.getCurrentUsername());
+        auditLogService.record("DELETE", "Customer", customer.getId(), "Cliente eliminado: " + customer.getFullName());
     }
 
     @Transactional(readOnly = true)
